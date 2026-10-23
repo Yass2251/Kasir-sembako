@@ -499,6 +499,9 @@ function updateCartQty(productId, delta) {
   }
 
   renderCart();
+  if (AppState.currentPage === 'kasir') {
+    renderKasirCatalog();
+  }
 }
 
 /**
@@ -507,6 +510,9 @@ function updateCartQty(productId, delta) {
 function removeFromCart(productId) {
   AppState.cart = AppState.cart.filter(item => item.id !== productId);
   renderCart();
+  if (AppState.currentPage === 'kasir') {
+    renderKasirCatalog();
+  }
 }
 
 /**
@@ -519,6 +525,9 @@ function clearCart(silent = false) {
     AppState.cart = [];
     AppState.discountValue = 0;
     renderCart();
+    if (AppState.currentPage === 'kasir') {
+      renderKasirCatalog();
+    }
     return;
   }
 
@@ -530,6 +539,9 @@ function clearCart(silent = false) {
       AppState.cart = [];
       AppState.discountValue = 0;
       renderCart();
+      if (AppState.currentPage === 'kasir') {
+        renderKasirCatalog();
+      }
       showToast('Keranjang telah dikosongkan', 'success');
     }
   });
@@ -587,6 +599,10 @@ function renderKasirCatalog() {
     const isOutOfStock = prod.stock <= 0;
     const isLowStock = prod.stock > 0 && prod.stock <= 5;
     
+    // Cek apakah item sudah ada di keranjang
+    const cartItem = AppState.cart.find(c => c.id === prod.id);
+    const inCartQty = cartItem ? cartItem.qty : 0;
+
     // Status label
     let stockTagHtml = `<span class="card-prod-stock">${prod.stock} ${prod.unit}</span>`;
     if (isOutOfStock) {
@@ -597,10 +613,24 @@ function renderKasirCatalog() {
 
     const emojiDisplay = prod.emoji || '📦';
 
+    // Konfigurasi tombol pesan
+    let btnText = 'Pesan';
+    let btnIcon = 'shopping-cart';
+    let btnClass = 'btn-card-order';
+
+    if (isOutOfStock) {
+      btnText = 'Stok Habis';
+      btnIcon = 'ban';
+      btnClass += ' is-out';
+    } else if (inCartQty > 0) {
+      btnText = `Pesan (${inCartQty})`;
+      btnClass += ' in-cart';
+    }
+
     return `
       <div class="pos-product-card ${isOutOfStock ? 'out-of-stock' : ''}" 
            data-id="${prod.id}" 
-           title="${isOutOfStock ? 'Stok habis' : 'Klik untuk tambah ke keranjang'}">
+           title="${isOutOfStock ? 'Stok habis' : 'Klik untuk pesan ke keranjang'}">
         <div class="card-prod-top">
           <div class="card-prod-avatar">${emojiDisplay}</div>
           <span class="card-prod-cat">${prod.category}</span>
@@ -614,6 +644,10 @@ function renderKasirCatalog() {
           </div>
           ${stockTagHtml}
         </div>
+        <button type="button" class="${btnClass}" data-id="${prod.id}" ${isOutOfStock ? 'disabled' : ''}>
+          <i data-lucide="${btnIcon}"></i>
+          <span>${btnText}</span>
+        </button>
       </div>
     `;
   }).join('');
@@ -625,6 +659,9 @@ function renderKasirCatalog() {
       addToCart(id);
     });
   });
+
+  // Render ulang ikon Lucide agar ikon di tombol pesan muncul sempurna
+  lucide.createIcons({ root: grid });
 }
 
 /**
